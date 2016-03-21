@@ -1,0 +1,195 @@
+#Linux commands for loading data into hadoop
+#####get the files from s3
+wget https://s3-us-west-2.amazonaws.com/w205projectdata/ghcnd-stations.txt
+wget https://s3-us-west-2.amazonaws.com/w205projectdata/ghcnd_all.tar.gz
+#####create a /final_project folder in hadoop
+hdfs dfs -mkdir /user/w205/final_project
+
+#####create a /final_project/station_data in hadoop
+hdfs dfs -mkdir /user/w205/final_project/station_data
+
+#####create a /final_project/climate_data in hadoop
+hdfs dfs -ls /user/w205/final_project/climate_data
+
+#####put station data in hadoop
+hdfs dfs -put ghcnd-stations.txt /user/w205/final_project/station_data
+
+##### Unpack data
+gunzip ghcnd_all.tar.gz
+tar -xvf ghcnd_all.tar
+#####.sh file for moving from .dly to .txt
+I wrote a rename script to move everything from .dly to .txt unfortunately I deleted it.  But you need to change the name of all of the files. Can't believe i deleted it, but I was trying to free up disk space... dumb!
+
+It was something like this.  
+for i in *.dly; 
+do mv $i `basename $i dly`txt; 
+done 
+
+#####put climate text files in hadoop the files into hadoop
+hdfs dfs -put *.txt /user/w205/final_project/climate_data
+
+
+#####Ingest Station Data
+CREATE EXTERNAL TABLE IF NOT EXISTS station_data
+(station string)
+ROW FORMAT DELIMITED
+STORED AS TEXTFILE
+LOCATION '/user/w205/final_project/station_data';
+
+#####Ingest climate data
+CREATE EXTERNAL TABLE IF NOT EXISTS climate_data
+(climate string)
+ROW FORMAT DELIMITED
+STORED AS TEXTFILE
+LOCATION '/user/w205/final_project/climate_data';
+
+CREATE TABLE IF NOT EXISTS input_raw(line STRING);
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS input_raw
+(climate string)
+ROW FORMAT DELIMITED
+STORED AS TEXTFILE
+LOCATION '/user/w205/final_project/climate_data';
+
+CREATE TABLE IF NOT EXISTS climate_data_raw(
+station_id STRING,
+year STRING,
+month STRING,
+climate_measure STRING,
+flags_1 STRING,
+measure_1 STRING,
+flags_2 STRING,
+measure_2 STRING,
+flags_3 STRING,
+measure_3 STRING,
+flags_4 STRING,
+measure_4 STRING,
+flags_5 STRING,
+measure_5 STRING,
+flags_6 STRING,
+measure_6 STRING,
+flags_7 STRING,
+measure_7 STRING,
+flags_8 STRING,
+measure_8 STRING,
+flags_9 STRING,
+measure_9 STRING,
+flags_10 STRING,
+measure_10 STRING,
+flags_11 STRING,
+measure_11 STRING,
+flags_12 STRING,
+measure_12 STRING,
+flags_13 STRING,
+measure_13 STRING,
+flags_14 STRING,
+measure_14 STRING,
+flags_15 STRING,
+measure_15 STRING,
+flags_16 STRING,
+measure_16 STRING,
+flags_17 STRING,
+measure_17 STRING,
+flags_18 STRING,
+measure_18 STRING,
+flags_19 STRING,
+measure_19 STRING,
+flags_20 STRING,
+measure_20 STRING,
+flags_21 STRING,
+measure_21 STRING,
+flags_22 STRING,
+measure_22 STRING,
+flags_23 STRING,
+measure_23 STRING,
+flags_24 STRING,
+measure_24 STRING,
+flags_25 STRING,
+measure_25 STRING,
+flags_26 STRING,
+measure_26 STRING,
+flags_27 STRING,
+measure_27 STRING,
+flags_28 STRING,
+measure_28 STRING,
+flags_29 STRING,
+measure_29 STRING,
+flags_30 STRING,
+measure_30 STRING,
+flags_31 STRING,
+measure_31 STRING);
+
+
+INSERT INTO TABLE climate_data_raw
+SELECT
+substr(climate,1,11) as station_id,
+substr(climate,12,4) as year,
+substr(climate,16,2) as month,
+substr(climate,18,4) as climate_measure,
+substr(climate,22,5) as measure_1,
+substr(climate,27,3) as flags_1,
+substr(climate,30,5) as measure_2,
+substr(climate,35,3) as flags_2,
+substr(climate,38,5) as measure_3,
+substr(climate,43,3) as flags_3,
+substr(climate,46,5) as measure_4,
+substr(climate,51,3) as flags_4,
+substr(climate,54,5) as measure_5,
+substr(climate,59,3) as flags_5,
+substr(climate,62,5) as measure_6,
+substr(climate,67,3) as flags_6,
+substr(climate,70,5) as measure_7,
+substr(climate,75,3) as flags_7,
+substr(climate,78,5) as measure_8,
+substr(climate,83,3) as flags_8,
+substr(climate,86,5) as measure_9,
+substr(climate,91,3) as flags_9,
+substr(climate,94,5) as measure_10,
+substr(climate,99,3) as flags_10,
+substr(climate,102,5) as measure_11,
+substr(climate,107,3) as flags_11,
+substr(climate,110,5) as measure_12,
+substr(climate,115,3) as flags_12,
+substr(climate,118,5) as measure_13,
+substr(climate,123,3) as flags_13,
+substr(climate,126,5) as measure_14,
+substr(climate,131,3) as flags_14,
+substr(climate,134,5) as measure_15,
+substr(climate,139,3) as flags_15,
+substr(climate,142,5) as measure_16,
+substr(climate,147,3) as flags_16,
+substr(climate,150,5) as measure_17,
+substr(climate,155,3) as flags_17,
+substr(climate,158,5) as measure_18,
+substr(climate,163,3) as flags_18,
+substr(climate,166,5) as measure_19,
+substr(climate,171,3) as flags_19,
+substr(climate,174,5) as measure_20,
+substr(climate,179,3) as flags_20,
+substr(climate,182,5) as measure_21,
+substr(climate,187,3) as flags_21,
+substr(climate,190,5) as measure_22,
+substr(climate,195,3) as flags_22,
+substr(climate,198,5) as measure_23,
+substr(climate,203,3) as flags_23,
+substr(climate,206,5) as measure_24,
+substr(climate,211,3) as flags_24,
+substr(climate,214,5) as measure_25,
+substr(climate,219,3) as flags_25,
+substr(climate,222,5) as measure_26,
+substr(climate,227,3) as flags_26,
+substr(climate,230,5) as measure_27,
+substr(climate,235,3) as flags_27,
+substr(climate,238,5) as measure_28,
+substr(climate,243,3) as flags_28,
+substr(climate,246,5) as measure_29,
+substr(climate,251,3) as flags_29,
+substr(climate,254,5) as measure_30,
+substr(climate,259,3) as flags_30,
+substr(climate,262,5) as measure_31,
+substr(climate,267,3) as flags_31
+FROM input_raw where climate like '%TMAX%'
+or climate like'%TMIN%' limit 100000;
+
+DROP TABLE input_raw;
