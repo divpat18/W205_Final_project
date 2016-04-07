@@ -1,0 +1,27 @@
+1) Install Maven so you can install the SerDe
+	[root]$ wget http://apache.mirror.anlx.net/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+  	[root]$ tar -zxf apache-maven-3.3.9-bin.tar.gz
+  	[root]$ sudo cp -R apache-maven-3.3.9 /usr/local
+
+2) Install a json SerDe
+	[root]$ sudo git clone https://github.com/rcongiu/Hive-JSON-Serde.git
+  	[root]$ sudo mvn -Pcdh5 clean package
+
+3) Add .hiverc file to root and w205
+	[root]$ vi ~/.hiverc
+	<paste> add jar /usr/local/Hive-JSON-Serde/json-serde/target/json-serde-1.3.8-SNAPSHOT-jar-with-dependencies.jar
+	":x"
+	[root]$ su - w205
+	[w205]$ vi ~/.hiverc
+	<paste> add jar /usr/local/Hive-JSON-Serde/json-serde/target/json-serde-1.3.8-SNAPSHOT-jar-with-dependencies.jar
+	":x" 
+4) Create energy data json's
+	[w205]$ cd /home/w205/W205_Final_project/wattQueries
+	[w205]$ python transform_json.py <balancing_authority_argument>
+		i. Might have to install "requests" here
+			[w205]$ pip install requests
+
+5) Create table, insert into hive
+	[w205]$ hive -f create_energy_table.sql
+	[w205]$ hive -f load_energy_data.sql
+		i. Note: I still have the name of the json file hard coded into load_energy_data.sql, so you'll have to go in and change it or be smart and parameterize it. 
