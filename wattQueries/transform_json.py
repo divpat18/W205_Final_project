@@ -29,7 +29,7 @@ def flatten_json(y):
 def fill_out_json(row):
 
     fields = ["genmix_thermal_gen_MW", "genmix_solar_gen_MW", "genmix_renewable_gen_MW", "genmix_biomass_gen_MW",
-             "genmix_wind_gen_MW", "genmix_nonwind_gen_MW", "genmix_refuse_gen_MW", "genmix_biogas_gen_MW",
+              "genmix_oil_gen_MW","genmix_wind_gen_MW", "genmix_nonwind_gen_MW", "genmix_refuse_gen_MW", "genmix_biogas_gen_MW",
              "genmix_nuclear_gen_MW","genmix_other_gen_MW", "genmix_natgas_gen_MW", "genmix_hydro_gen_MW", "genmix_coal_gen_MW",
              "ba", "url", "timestamp", "created_at", "carbon", "freq", "market"]
 
