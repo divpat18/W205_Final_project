@@ -1,0 +1,26 @@
+-- creates an internal table that is equivalent to energy table So that it is accessible from Tableau
+CREATE TABLE IF NOT EXISTS energy_data_consolidated(
+timestamp string,
+url string,
+created_at string,
+ba string,
+market string,
+carbon double,
+freq string,
+genmix_biogas_gen_mw double,
+genmix_biomass_gen_mw double,
+genmix_solar_gen_mw double,
+genmix_nonwind_gen_mw double,
+genmix_renewable_gen_mw double,
+genmix_wind_gen_mw double,
+genmix_nuclear_gen_mw double,
+genmix_thermal_gen_mw double,
+genmix_coal_gen_mw double,
+genmix_refuse_gen_mw double,
+genmix_other_gen_mw double,
+genmix_natgas_gen_mw double,
+genmix_hydro_gen_mw double);
+
+//Inserts data into energy_data_consolidated table.
+Insert into energy_data_consolidated
+Select * from energy;
