@@ -1,3 +1,8 @@
+//Downloading energy data
+Put the transform_json.py and run-transform-json.sh in the same dir.
+Then run "run-transform-json.sh BPA ERCOT MISO PJM SPP"
+
+
 -- creates an internal table that is equivalent to energy table So that it is accessible from Tableau
 CREATE TABLE IF NOT EXISTS energy_data_consolidated(
 timestamp string,
