@@ -1,6 +1,7 @@
 //Downloading energy data
 Put the transform_json.py and run-transform-json.sh in the same dir.
 Then run "run-transform-json.sh BPA ERCOT MISO PJM SPP"
+There should be a total of 550362 rows of data.
 
 
 -- creates an internal table that is equivalent to energy table So that it is accessible from Tableau
