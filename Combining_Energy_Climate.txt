@@ -29,4 +29,36 @@ genmix_hydro_gen_mw double);
 
 //Inserts data into energy_data_consolidated table.
 Insert into energy_data_consolidated
-Select * from energy;
+Select 
+cast(regexp_extract(timestamp,'(.*)(T)(.*)',1) as date) as date_created,
+timestamp,
+url,
+created_at,
+ba,
+market,
+carbon,
+freq,
+genmix_biogas_gen_mw,
+genmix_biomass_gen_mw,
+genmix_solar_gen_mw,
+genmix_nonwind_gen_mw,
+genmix_renewable_gen_mw,
+genmix_wind_gen_mw,
+genmix_nuclear_gen_mw,
+genmix_thermal_gen_mw,
+genmix_coal_gen_mw,
+genmix_refuse_gen_mw,
+genmix_other_gen_mw,
+genmix_natgas_gen_mw,
+genmix_hydro_gen_mw
+from energy;
+
+--Query for MISO data
+Select * from (Select date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, 
+avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal,
+avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
+from energy_data_consolidated e where ba ='MISO' group by date_created,ba) a
+left join
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=37.822808 and latitude<=48.019324 and longitude>=-96.416016 and longitude<=-84.814453 group by reading_date) b
+ON (date_created = reading_date);
+
