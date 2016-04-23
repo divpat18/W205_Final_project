@@ -59,7 +59,7 @@ avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(
 avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
 from energy_data_consolidated e where ba ='MISO' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=37.822808 and latitude<=48.019324 and longitude>=-96.416016 and longitude<=-84.814453 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=37.822808 and latitude<=48.019324 and longitude>=-96.416016 and longitude<=-84.814453 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 -- Query for ERCOT Data
@@ -68,7 +68,7 @@ avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(
 avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
 from energy_data_consolidated e where ba ='ERCOT' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=27.21556 and latitude<=33.358062 and longitude>=-103.623047 and longitude<=-93.955078 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=27.21556 and latitude<=33.358062 and longitude>=-103.623047 and longitude<=-93.955078 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 -- Query for BPA Data
@@ -77,7 +77,7 @@ avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(
 avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
 from energy_data_consolidated e where ba ='BPA' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=42.098222 and latitude<=48.980217 and longitude>=-124.189453 and longitude<=-111.005859 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=42.098222 and latitude<=48.980217 and longitude>=-124.189453 and longitude<=-111.005859 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 -- Query for PJM Data
@@ -86,7 +86,7 @@ avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(
 avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
 from energy_data_consolidated e where ba ='PJM' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=36.668419 and latitude<=41.967659 and longitude>=-84.726562 and longitude<=-75.234375 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=36.668419 and latitude<=41.967659 and longitude>=-84.726562 and longitude<=-75.234375 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 -- Query for SPP Data
@@ -95,7 +95,7 @@ avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(
 avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro  
 from energy_data_consolidated e where ba ='SPP' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=33.578015 and latitude<=43.036776 and longitude>=-102.524414 and longitude<=-94.658203 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=33.578015 and latitude<=43.036776 and longitude>=-102.524414 and longitude<=-94.658203 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 //A view for MISO data to be queried.
