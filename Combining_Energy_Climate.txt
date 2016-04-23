@@ -104,7 +104,7 @@ AS
 SELECT * from 
 (SELECT date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal, avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro from energy_data_consolidated e where ba ='MISO' group by date_created,ba) a 
 left join 
-(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=37.822808 and latitude<=48.019324 and longitude>=-96.416016 and longitude<=-84.814453 group by reading_date) b
+(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=37.822808 and latitude<=48.019324 and longitude>=-96.416016 and longitude<=-84.814453 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 // A view for ERCOT data 
@@ -113,7 +113,7 @@ AS
 SELECT * from 
 (SELECT date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal,avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro from energy_data_consolidated e where ba ='ERCOT' group by date_created,ba) a
 left join
-(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=27.21556 and latitude<=33.358062 and longitude>=-103.623047 and longitude<=-93.955078 group by reading_date) b
+(Select reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=27.21556 and latitude<=33.358062 and longitude>=-103.623047 and longitude<=-93.955078 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 //A view for BPA data
@@ -121,7 +121,7 @@ CREATE VIEW IF NOT EXISTS BPA_GEN_MIX
 AS 
 SELECT * from (SELECT date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal,avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro from energy_data_consolidated e where ba ='BPA' group by date_created,ba) a
 left join
-(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=42.098222 and latitude<=48.980217 and longitude>=-124.189453 and longitude<=-111.005859 group by reading_date) b
+(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=42.098222 and latitude<=48.980217 and longitude>=-124.189453 and longitude<=-111.005859 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
 //A view for PJM
@@ -130,14 +130,38 @@ AS
 SELECT * from 
 (SELECT date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal,avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro from energy_data_consolidated e where ba ='PJM' group by date_created,ba) a
 left join
-(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=36.668419 and latitude<=41.967659 and longitude>=-84.726562 and longitude<=-75.234375 group by reading_date) b
+(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=36.668419 and latitude<=41.967659 and longitude>=-84.726562 and longitude<=-75.234375 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
--- Query for SPP Data
+// A view for SPP Data
 CREATE VIEW IF NOT EXISTS SPP_GEN_MIX 
 AS 
 SELECT * from 
 (SELECT date_created, ba, avg(genmix_biogas_gen_mw) as biogas, avg(genmix_biomass_gen_mw) as biomass, avg(genmix_solar_gen_mw) as solar, avg(genmix_nonwind_gen_mw) as nonwind, avg(genmix_renewable_gen_mw) as renewable, avg(genmix_wind_gen_mw) as wind, avg(genmix_nuclear_gen_mw) as nuclear, avg(genmix_thermal_gen_mw) as thermal,avg(genmix_coal_gen_mw) as coal, avg(genmix_refuse_gen_mw) as refuse, avg(genmix_other_gen_mw) as other, avg(genmix_natgas_gen_mw) as natgas, avg(genmix_hydro_gen_mw) as hydro from energy_data_consolidated e where ba ='SPP' group by date_created,ba) a
 left join
-(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=33.578015 and latitude<=43.036776 and longitude>=-102.524414 and longitude<=-94.658203 group by reading_date) b
+(SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=33.578015 and latitude<=43.036776 and longitude>=-102.524414 and longitude<=-94.658203 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
+
+
+//Map from BA to States
+CREATE TABLE IF NOT EXISTS ba_state_mapping(ba string, state string)
+INSERT INTO ba_state_mapping values("MISO", "IL");
+INSERT INTO ba_state_mapping values("MISO", "IN");
+INSERT INTO ba_state_mapping values("MISO", "IA");
+INSERT INTO ba_state_mapping values("MISO", "WT");
+INSERT INTO ba_state_mapping values("MISO", "MN");
+INSERT INTO ba_state_mapping values("MISO", "MI");
+INSERT INTO ba_state_mapping values("ERCOT", "TX");
+INSERT INTO ba_state_mapping values("BPA", "OR");
+INSERT INTO ba_state_mapping values("BPA", "WA");
+INSERT INTO ba_state_mapping values("BPA", "ID");
+INSERT INTO ba_state_mapping values("PJM", "OH");
+INSERT INTO ba_state_mapping values("PJM", "KY");
+INSERT INTO ba_state_mapping values("PJM", "WV");
+INSERT INTO ba_state_mapping values("PJM", "PA");
+INSERT INTO ba_state_mapping values("PJM", "MD");
+INSERT INTO ba_state_mapping values("PJM", "DE");
+INSERT INTO ba_state_mapping values("PJM", "NJ");
+INSERT INTO ba_state_mapping values("SPP", "NE");
+INSERT INTO ba_state_mapping values("SPP", "OK");
+INSERT INTO ba_state_mapping values("SPP", "KA");
