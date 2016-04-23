@@ -142,6 +142,33 @@ left join
 (SELECT reading_date, avg(tmax) as max, avg(tmin) as min from combined_climate_data where latitude>=33.578015 and latitude<=43.036776 and longitude>=-102.524414 and longitude<=-94.658203 and tmax>-60 and tmax<150 and tmin>-60 and tmin<150 group by reading_date) b
 ON (date_created = reading_date);
 
+//Creating table for visualization
+CREATE TABLE IF NOT EXISTS weather_gen_mix(
+date_created date,                	                    
+ba string,              	                    
+biogas double,             	                    
+biomass double,            	                    
+solar double,           	                    
+nonwind double,          	                    
+renewable double,             	                    
+wind double,              	                    
+nuclear double,              	                    
+thermal double,              	                    
+coal double,              	                    
+refuse double,              	                    
+other double,              	                    
+natgas double,              	                    
+hydro double,              	                    
+reading_date date,                	                    
+max double,              	                    
+min double);
+
+INSERT INTO weather_gen_mix SELECT * from SPP_GEN_MIX;
+INSERT INTO weather_gen_mix SELECT * from MISO_GEN_MIX;
+INSERT INTO weather_gen_mix SELECT * from ERCOT_GEN_MIX;
+INSERT INTO weather_gen_mix SELECT * from PJM_GEN_MIX;
+INSERT INTO weather_gen_mix SELECT * from BPA_GEN_MIX;
+
 
 //Map from BA to States
 CREATE TABLE IF NOT EXISTS ba_state_mapping(ba string, state string)
