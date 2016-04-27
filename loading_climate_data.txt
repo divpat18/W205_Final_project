@@ -1,23 +1,23 @@
-#Linux commands for loading data into hadoop
-#####get the files from s3
+--#Linux commands for loading data into hadoop
+----#get the files from s3
 wget https://s3-us-west-2.amazonaws.com/w205projectdata/ghcnd-stations.txt
 wget https://s3-us-west-2.amazonaws.com/w205projectdata/ghcnd_all.tar.gz
-#####create a /final_project folder in hadoop
+----#create a /final_project folder in hadoop
 hdfs dfs -mkdir /user/w205/final_project
 
-#####create a /final_project/station_data in hadoop
+----#create a /final_project/station_data in hadoop
 hdfs dfs -mkdir /user/w205/final_project/station_data
 
-#####create a /final_project/climate_data in hadoop
+----#create a /final_project/climate_data in hadoop
 hdfs dfs -ls /user/w205/final_project/climate_data
 
-#####put station data in hadoop
+----#put station data in hadoop
 hdfs dfs -put ghcnd-stations.txt /user/w205/final_project/station_data
 
-##### Unpack data
+----# Unpack data
 gunzip ghcnd_all.tar.gz
 tar -xvf ghcnd_all.tar
-#####.sh file for moving from .dly to .txt
+----#.sh file for moving from .dly to .txt
 I wrote a rename script to move everything from .dly to .txt unfortunately I deleted it.  But you need to change the name of all of the files. Can't believe i deleted it, but I was trying to free up disk space... dumb!
 
 It was something like this.  
@@ -25,18 +25,18 @@ for i in *.dly;
 do mv $i `basename $i dly`txt; 
 done 
 
-#####put climate text files in hadoop the files into hadoop
+----#put climate text files in hadoop the files into hadoop
 hdfs dfs -put *.txt /user/w205/final_project/climate_data
 
 
-#####Ingest Station Data
+----#Ingest Station Data
 CREATE EXTERNAL TABLE IF NOT EXISTS station_data
 (station string)
 ROW FORMAT DELIMITED
 STORED AS TEXTFILE
 LOCATION '/user/w205/final_project/station_data';
 
-#####Ingest climate data
+----#Ingest climate data
 CREATE EXTERNAL TABLE IF NOT EXISTS climate_data
 (climate string)
 ROW FORMAT DELIMITED
@@ -52,7 +52,7 @@ ROW FORMAT DELIMITED
 STORED AS TEXTFILE
 LOCATION '/user/w205/final_project/climate_data';
 
-CREATE TABLE IF NOT EXISTS climate_data_raw(
+CREATE TABLE IF NOT EXISTS climate_data_raw_13_16(
 station_id STRING,
 year STRING,
 month STRING,
@@ -121,7 +121,7 @@ flags_31 STRING,
 measure_31 STRING);
 
 
-INSERT INTO TABLE climate_data_raw
+INSERT INTO TABLE climate_data_raw_13_16
 SELECT
 substr(climate,1,11) as station_id,
 substr(climate,12,4) as year,
@@ -189,7 +189,627 @@ substr(climate,254,5) as measure_30,
 substr(climate,259,3) as flags_30,
 substr(climate,262,5) as measure_31,
 substr(climate,267,3) as flags_31
-FROM input_raw where climate like '%TMAX%'
-or climate like'%TMIN%' limit 100000;
+FROM input_raw where 
+(climate like '%TMAX%'
+or climate like'%TMIN%')
+and (climate like '%2013%'
+or climate like '%2014%'
+or climate like '%2015%'
+or climate like '%2015%');
 
 DROP TABLE input_raw;
+
+--#Create the station_data_pro table to pull the station data from station_data which is raw to this format.
+CREATE TABLE IF NOT EXISTS station_data_pro(
+id STRING,
+latitude STRING,
+longitude STRING,
+elevation STRING,
+state STRING,
+name STRING,
+gsn_flag STRING,
+crn_glag STRING,
+wmo_id STRING);
+
+--#Use fixed width to import data from the station_data table into station_data_pro
+insert into station_data_pro
+select
+substr(station,1,11) as id,
+substr(station,13,7) as latitude,
+substr(station,22,8) as longitude,
+substr(station,32,6) as elevation,
+substr(station,39,1) as state,
+substr(station,42,29) as name,
+substr(station,73,2) as gsn_flag,
+substr(station,77,2) as crn_glag,
+substr(station,81,4) as wmo_id
+from station_data;
+
+
+--#Create the table combined_climate_data which is what will be the final transformed table
+create table if not exists combined_climate_data(
+id STRING,
+latitude STRING,
+longitude STRING,
+reading_date DATE,
+tmin FLOAT,
+tmax FLOAT
+);
+
+--#Combine the data from station_data_pro and climate_data and store in combined_climate_data
+--#You should be able to select Day 1-Run through Day 31 -- Run and paste them into hive to instert all
+--of the data.  When you finish you should have 15,364,681 rows.
+
+--Day 1-Run
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_1/10 as tmin, 
+cdrmax.flags_1/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','01')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 2- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_2/10 as tmin, 
+cdrmax.flags_2/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','02')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 3
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_3/10 as tmin, 
+cdrmax.flags_3/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','03')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 4
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_4/10 as tmin, 
+cdrmax.flags_4/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','04')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 5-- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_5/10 as tmin, 
+cdrmax.flags_5/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','05')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 6 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_6/10 as tmin, 
+cdrmax.flags_6/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','06')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 7 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_7/10 as tmin, 
+cdrmax.flags_7/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','07')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 8 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_8/10 as tmin, 
+cdrmax.flags_8/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','08')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 9 -- Run
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_9/10 as tmin, 
+cdrmax.flags_9/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','09')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 10 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_10/10 as tmin, 
+cdrmax.flags_10/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','10')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+
+--Day 11 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_11/10 as tmin, 
+cdrmax.flags_11/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','11')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 12 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_12/10 as tmin, 
+cdrmax.flags_12/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','12')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 13 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_13/10 as tmin, 
+cdrmax.flags_13/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','13')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+
+--Day 14 --RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_14/10 as tmin, 
+cdrmax.flags_14/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','14')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 15 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_15/10 as tmin, 
+cdrmax.flags_15/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','15')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 16 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_16/10 as tmin, 
+cdrmax.flags_16/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','16')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 17 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_17/10 as tmin, 
+cdrmax.flags_17/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','17')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 18 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_18/10 as tmin, 
+cdrmax.flags_18/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','18')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id; 
+
+--Day 19 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_19/10 as tmin, 
+cdrmax.flags_19/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','19')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 20 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_20/10 as tmin, 
+cdrmax.flags_20/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','20')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 21 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_21/10 as tmin, 
+cdrmax.flags_21/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','21')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 22 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_22/10 as tmin, 
+cdrmax.flags_22/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','22')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 23 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_23/10 as tmin, 
+cdrmax.flags_23/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','23')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 24 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_24/10 as tmin, 
+cdrmax.flags_24/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','24')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 25  -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_25/10 as tmin, 
+cdrmax.flags_25/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','25')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 26 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_26/10 as tmin, 
+cdrmax.flags_26/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','26')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 27 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_27/10 as tmin, 
+cdrmax.flags_27/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','27')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 28 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_28/10 as tmin, 
+cdrmax.flags_28/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','28')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id;
+
+--Day 29 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_29/10 as tmin, 
+cdrmax.flags_29/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','29')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id
+and cdrmin.month <> '02';
+
+--Day 30 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_30/10 as tmin, 
+cdrmax.flags_30/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','30')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id
+and cdrmin.month <> '02';
+
+--Day 31 -- RUN
+insert into combined_climate_data
+select sdp.id,
+cdrmin.flags_31/10 as tmin, 
+cdrmax.flags_31/10 as tmax,
+to_date(concat (cdrmax.year,'-',cdrmin.month,'-','31')) as reading_date,
+sdp.latitude as latitude,
+sdp.longitude as longitude
+from climate_data_raw_13_16 cdrmin,
+climate_data_raw_13_16 cdrmax,
+station_data_pro sdp
+where cdrmin.climate_measure = 'TMIN'
+and cdrmax.climate_measure = 'TMAX'
+and cdrmin.station_id = cdrmax.station_id
+and cdrmin.year = cdrmax.year
+and cdrmin.month = cdrmax.month
+and sdp.id = cdrmin.station_id
+and cdrmin.month <> '02'
+and cdrmin.month <> '04'
+and cdrmin.month <> '06'
+and cdrmin.month <> '09'
+and cdrmin.month <> '11';
+
+alter table combined_climate_data change tmin lat float;
+alter table combined_climate_data change tmax lon float;
+alter table combined_climate_data change latitude tmin float;
+alter table combined_climate_data change longitude tmax float;
+alter table combined_climate_data change lat latitude float;
+alter table combined_climate_data change lon longitude float;
